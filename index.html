@@ -1,0 +1,992 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Demo Supermarket - Order Online</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background-color: #f8f9fa;
+            line-height: 1.6;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 1rem;
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .header h1 {
+            text-align: center;
+            font-size: 1.5rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .search-bar {
+            width: 100%;
+            padding: 0.75rem;
+            border: none;
+            border-radius: 25px;
+            font-size: 1rem;
+            margin-top: 0.5rem;
+        }
+
+        .categories {
+            display: flex;
+            gap: 0.5rem;
+            padding: 1rem;
+            overflow-x: auto;
+            background: white;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+
+        .category-btn {
+            background: #e9ecef;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            white-space: nowrap;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .category-btn.active {
+            background: #667eea;
+            color: white;
+        }
+
+        .products-grid {
+            padding: 1rem;
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1rem;
+        }
+
+        .product-card {
+            background: white;
+            border-radius: 12px;
+            padding: 1rem;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            transition: transform 0.2s ease;
+        }
+
+        .product-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.15);
+        }
+
+        .product-image {
+            width: 100%;
+            height: 120px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            margin-bottom: 0.5rem;
+            position: relative;
+            overflow: hidden;
+            cursor: pointer;
+        }
+
+        .image-gallery {
+            display: flex;
+            transition: transform 0.3s ease;
+            height: 100%;
+            touch-action: pan-y;
+        }
+
+        .gallery-image {
+            width: 100%;
+            height: 100%;
+            flex-shrink: 0;
+            object-fit: cover;
+            border-radius: 8px;
+        }
+
+        .gallery-dots {
+            position: absolute;
+            bottom: 8px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 4px;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .product-image:hover .gallery-dots,
+        .product-image.has-multiple .gallery-dots {
+            opacity: 1;
+        }
+
+        .dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.6);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+        }
+
+        .dot.active {
+            background: white;
+            transform: scale(1.3);
+        }
+
+        .product-emoji {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            height: 100%;
+            font-size: 2rem;
+        }
+
+        .image-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.9);
+            z-index: 3000;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .modal-content {
+            max-width: 90vw;
+            max-height: 90vh;
+            position: relative;
+        }
+
+        .modal-image {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            border-radius: 8px;
+        }
+
+        .modal-close {
+            position: absolute;
+            top: -40px;
+            right: 0;
+            background: none;
+            border: none;
+            color: white;
+            font-size: 2rem;
+            cursor: pointer;
+        }
+
+        .modal-nav {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            background: rgba(0,0,0,0.5);
+            color: white;
+            border: none;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 1.2rem;
+        }
+
+        .modal-prev {
+            left: -60px;
+        }
+
+        .modal-next {
+            right: -60px;
+        }
+
+        .product-name {
+            font-weight: 600;
+            margin-bottom: 0.25rem;
+            font-size: 0.9rem;
+        }
+
+        .product-price {
+            color: #28a745;
+            font-weight: bold;
+            margin-bottom: 0.5rem;
+        }
+
+        .add-btn {
+            width: 100%;
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 0.5rem;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: background 0.3s ease;
+        }
+
+        .add-btn:hover {
+            background: #5a6fd8;
+        }
+
+        .cart-float {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: #28a745;
+            color: white;
+            border: none;
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            font-size: 1.5rem;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(40,167,69,0.4);
+            transition: all 0.3s ease;
+            z-index: 1000;
+        }
+
+        .cart-float:hover {
+            transform: scale(1.1);
+        }
+
+        .cart-badge {
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            background: #dc3545;
+            color: white;
+            border-radius: 50%;
+            width: 25px;
+            height: 25px;
+            font-size: 0.8rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .cart-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.5);
+            z-index: 2000;
+            display: none;
+        }
+
+        .cart-drawer {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: white;
+            border-radius: 20px 20px 0 0;
+            padding: 1.5rem;
+            transform: translateY(100%);
+            transition: transform 0.3s ease;
+            max-height: 70vh;
+            overflow-y: auto;
+            z-index: 2001;
+        }
+
+        .cart-drawer.open {
+            transform: translateY(0);
+        }
+
+        .cart-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 1px solid #eee;
+        }
+
+        .cart-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.75rem 0;
+            border-bottom: 1px solid #f8f9fa;
+        }
+
+        .cart-item-name {
+            font-weight: 500;
+        }
+
+        .cart-item-price {
+            color: #28a745;
+            font-weight: bold;
+        }
+
+        .quantity-controls {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-top: 0.25rem;
+        }
+
+        .qty-btn {
+            background: #e9ecef;
+            border: none;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .cart-total {
+            background: #f8f9fa;
+            padding: 1rem;
+            border-radius: 8px;
+            margin: 1rem 0;
+            font-weight: bold;
+            font-size: 1.1rem;
+        }
+
+        .checkout-form {
+            margin-top: 1rem;
+        }
+
+        .form-group {
+            margin-bottom: 1rem;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 0.25rem;
+            font-weight: 500;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 1rem;
+        }
+
+        .whatsapp-btn {
+            width: 100%;
+            background: #25d366;
+            color: white;
+            border: none;
+            padding: 1rem;
+            border-radius: 8px;
+            font-size: 1.1rem;
+            font-weight: bold;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+        }
+
+        .whatsapp-btn:hover {
+            background: #22c55e;
+        }
+
+        .close-btn {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        @media (max-width: 480px) {
+            .products-grid {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 0.75rem;
+                padding: 0.75rem;
+            }
+            
+            .product-card {
+                padding: 0.75rem;
+            }
+            
+            .product-image {
+                height: 100px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🏪 Demo Supermarket</h1>
+        <input type="text" class="search-bar" placeholder="Search products..." id="searchInput">
+    </div>
+
+    <div class="categories">
+        <button class="category-btn active" data-category="all">All</button>
+        <button class="category-btn" data-category="groceries">Groceries</button>
+        <button class="category-btn" data-category="snacks">Snacks</button>
+        <button class="category-btn" data-category="beverages">Beverages</button>
+        <button class="category-btn" data-category="dairy">Dairy</button>
+    </div>
+
+    <div class="products-grid" id="productsGrid">
+        <!-- Products will be loaded here -->
+    </div>
+
+    <button class="cart-float" id="cartBtn">
+        🛒
+        <span class="cart-badge" id="cartBadge">0</span>
+    </button>
+
+    <div class="cart-overlay" id="cartOverlay"></div>
+    
+    <div class="cart-drawer" id="cartDrawer">
+        <div class="cart-header">
+            <h3>Your Cart</h3>
+            <button class="close-btn" id="closeCart">×</button>
+        </div>
+        
+        <div id="cartItems">
+            <!-- Cart items will appear here -->
+        </div>
+        
+        <div class="cart-total" id="cartTotal">
+            Total: ₹0
+        </div>
+        
+        <div class="checkout-form">
+            <div class="form-group">
+                <label for="customerName">Your Name</label>
+                <input type="text" id="customerName" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="customerPhone">Phone Number</label>
+                <input type="tel" id="customerPhone" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="customerAddress">Delivery Address</label>
+                <input type="text" id="customerAddress" required>
+            </div>
+            
+            <button class="whatsapp-btn" id="whatsappBtn">
+                📱 Send Order via WhatsApp
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // Sample products data with multiple images
+        const products = [
+            {
+                id: 1, 
+                name: "Bread", 
+                price: 25, 
+                category: "groceries", 
+                images: ["🍞"] // Can be emojis for demo, replace with actual image URLs
+            },
+            {
+                id: 2, 
+                name: "Milk", 
+                price: 30, 
+                category: "dairy", 
+                images: ["🥛", "📄"] // Front of package, nutrition label
+            },
+            {
+                id: 3, 
+                name: "Lays Chips", 
+                price: 20, 
+                category: "snacks", 
+                images: ["🍟", "📋"] // Front, back with ingredients
+            },
+            {
+                id: 4, 
+                name: "Coca Cola", 
+                price: 40, 
+                category: "beverages", 
+                images: ["🥤", "🏷️"] // Front, nutrition facts
+            },
+            {
+                id: 5, 
+                name: "Rice (1kg)", 
+                price: 60, 
+                category: "groceries", 
+                images: ["🍚"]
+            },
+            {
+                id: 6, 
+                name: "Maggi", 
+                price: 15, 
+                category: "snacks", 
+                images: ["🍜", "📝"] // Front, cooking instructions
+            },
+            {
+                id: 7, 
+                name: "Yogurt", 
+                price: 25, 
+                category: "dairy", 
+                images: ["🥛", "📊"] // Front, nutritional info
+            },
+            {
+                id: 8, 
+                name: "Orange Juice", 
+                price: 35, 
+                category: "beverages", 
+                images: ["🧃", "🍊"] // Front, ingredients list
+            },
+            {
+                id: 9, 
+                name: "Biscuits", 
+                price: 30, 
+                category: "snacks", 
+                images: ["🍪", "📋"]
+            },
+            {
+                id: 10, 
+                name: "Cheese", 
+                price: 80, 
+                category: "dairy", 
+                images: ["🧀", "📄"]
+            },
+            {
+                id: 11, 
+                name: "Tea", 
+                price: 45, 
+                category: "beverages", 
+                images: ["🍵"]
+            },
+            {
+                id: 12, 
+                name: "Sugar (1kg)", 
+                price: 50, 
+                category: "groceries", 
+                images: ["🧂"]
+            }
+        ];
+
+        let cart = {};
+        let currentCategory = 'all';
+        let currentImageIndex = {};
+
+        // Store owner's WhatsApp number (change this)
+        const STORE_WHATSAPP = "919876543210";
+
+        // DOM elements
+        const productsGrid = document.getElementById('productsGrid');
+        const cartBtn = document.getElementById('cartBtn');
+        const cartBadge = document.getElementById('cartBadge');
+        const cartOverlay = document.getElementById('cartOverlay');
+        const cartDrawer = document.getElementById('cartDrawer');
+        const closeCart = document.getElementById('closeCart');
+        const cartItems = document.getElementById('cartItems');
+        const cartTotal = document.getElementById('cartTotal');
+        const whatsappBtn = document.getElementById('whatsappBtn');
+        const searchInput = document.getElementById('searchInput');
+
+        // Initialize app
+        function init() {
+            renderProducts();
+            setupEventListeners();
+        }
+
+        // Render products
+        function renderProducts(productsToShow = products) {
+            productsGrid.innerHTML = '';
+            
+            const filteredProducts = currentCategory === 'all' 
+                ? productsToShow 
+                : productsToShow.filter(p => p.category === currentCategory);
+
+            filteredProducts.forEach(product => {
+                currentImageIndex[product.id] = 0;
+                
+                const productCard = document.createElement('div');
+                productCard.className = 'product-card';
+                
+                const hasMultipleImages = product.images.length > 1;
+                
+                const imageGalleryHTML = `
+                    <div class="product-image ${hasMultipleImages ? 'has-multiple' : ''}" 
+                         onclick="openImageModal(${product.id}, 0)"
+                         ontouchstart="handleTouchStart(event, ${product.id})"
+                         ontouchmove="handleTouchMove(event, ${product.id})"
+                         ontouchend="handleTouchEnd(event, ${product.id})">
+                        <div class="image-gallery" id="gallery-${product.id}">
+                            ${product.images.map(img => 
+                                img.startsWith('http') ? 
+                                `<img src="${img}" alt="${product.name}" class="gallery-image">` :
+                                `<div class="product-emoji gallery-image">${img}</div>`
+                            ).join('')}
+                        </div>
+                        ${hasMultipleImages ? `
+                            <div class="gallery-dots">
+                                ${product.images.map((_, index) => 
+                                    `<div class="dot ${index === 0 ? 'active' : ''}" onclick="switchImage(event, ${product.id}, ${index})"></div>`
+                                ).join('')}
+                            </div>
+                        ` : ''}
+                    </div>
+                `;
+                
+                productCard.innerHTML = `
+                    ${imageGalleryHTML}
+                    <div class="product-name">${product.name}</div>
+                    <div class="product-price">₹${product.price}</div>
+                    <button class="add-btn" onclick="addToCart(${product.id})">Add to Cart</button>
+                `;
+                productsGrid.appendChild(productCard);
+            });
+        }
+
+        // Setup event listeners
+        function setupEventListeners() {
+            // Category buttons
+            document.querySelectorAll('.category-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    document.querySelectorAll('.category-btn').forEach(b => b.classList.remove('active'));
+                    e.target.classList.add('active');
+                    currentCategory = e.target.dataset.category;
+                    renderProducts();
+                });
+            });
+
+            // Cart controls
+            cartBtn.addEventListener('click', openCart);
+            cartOverlay.addEventListener('click', closeCartDrawer);
+            closeCart.addEventListener('click', closeCartDrawer);
+            whatsappBtn.addEventListener('click', sendWhatsAppOrder);
+
+            // Search
+            searchInput.addEventListener('input', handleSearch);
+        }
+
+        // Touch handling for swipe
+        let touchStartX = 0;
+        let touchStartTime = 0;
+        let isSwiping = false;
+
+        function handleTouchStart(event, productId) {
+            touchStartX = event.touches[0].clientX;
+            touchStartTime = Date.now();
+            isSwiping = false;
+        }
+
+        function handleTouchMove(event, productId) {
+            if (!touchStartX) return;
+            
+            const touchCurrentX = event.touches[0].clientX;
+            const diffX = touchStartX - touchCurrentX;
+            
+            // If moved more than 10px, consider it a swipe
+            if (Math.abs(diffX) > 10) {
+                isSwiping = true;
+                event.preventDefault(); // Prevent scrolling
+            }
+        }
+
+        function handleTouchEnd(event, productId) {
+            if (!touchStartX || !isSwiping) {
+                touchStartX = 0;
+                isSwiping = false;
+                return;
+            }
+            
+            const touchEndX = event.changedTouches[0].clientX;
+            const diffX = touchStartX - touchEndX;
+            const timeDiff = Date.now() - touchStartTime;
+            
+            // Only process quick swipes (less than 300ms)
+            if (timeDiff > 300) {
+                touchStartX = 0;
+                isSwiping = false;
+                return;
+            }
+            
+            const product = products.find(p => p.id === productId);
+            const currentIndex = currentImageIndex[productId] || 0;
+            
+            // Swipe left (next image)
+            if (diffX > 50 && currentIndex < product.images.length - 1) {
+                switchToImage(productId, currentIndex + 1);
+            }
+            // Swipe right (previous image)  
+            else if (diffX < -50 && currentIndex > 0) {
+                switchToImage(productId, currentIndex - 1);
+            }
+            
+            touchStartX = 0;
+            isSwiping = false;
+        }
+
+        // Switch product image
+        function switchImage(event, productId, imageIndex) {
+            event.stopPropagation();
+            switchToImage(productId, imageIndex);
+        }
+
+        function switchToImage(productId, imageIndex) {
+            currentImageIndex[productId] = imageIndex;
+            
+            const gallery = document.getElementById(`gallery-${productId}`);
+            const productImage = gallery.parentElement;
+            const dots = productImage.querySelectorAll('.dot');
+            
+            // Update gallery position
+            gallery.style.transform = `translateX(-${imageIndex * 100}%)`;
+            
+            // Update dots
+            dots.forEach((dot, index) => {
+                dot.classList.toggle('active', index === imageIndex);
+            });
+        }
+
+        // Open image modal (only if not swiping)
+        function openImageModal(productId, imageIndex = null) {
+            // Don't open modal if user was swiping
+            if (isSwiping) return;
+            
+            // Add small delay to distinguish from swipe
+            setTimeout(() => {
+                if (isSwiping) return;
+                
+                const product = products.find(p => p.id === productId);
+                const modalIndex = imageIndex !== null ? imageIndex : currentImageIndex[productId] || 0;
+                
+                // Create modal if it doesn't exist
+                let modal = document.getElementById('imageModal');
+                if (!modal) {
+                    modal = document.createElement('div');
+                    modal.id = 'imageModal';
+                    modal.className = 'image-modal';
+                    modal.innerHTML = `
+                        <div class="modal-content">
+                            <button class="modal-close" onclick="closeImageModal()">×</button>
+                            <button class="modal-nav modal-prev" onclick="prevModalImage()">‹</button>
+                            <button class="modal-nav modal-next" onclick="nextModalImage()">›</button>
+                            <div class="modal-image-container">
+                                <!-- Image will be inserted here -->
+                            </div>
+                        </div>
+                    `;
+                    document.body.appendChild(modal);
+                    
+                    // Close on background click
+                    modal.addEventListener('click', (e) => {
+                        if (e.target === modal) closeImageModal();
+                    });
+                }
+                
+                // Store current modal data
+                modal.dataset.productId = productId;
+                modal.dataset.imageIndex = modalIndex;
+                
+                // Update modal image
+                updateModalImage();
+                
+                // Show modal
+                modal.style.display = 'flex';
+            }, 50);
+        }
+
+        function updateModalImage() {
+            const modal = document.getElementById('imageModal');
+            const productId = parseInt(modal.dataset.productId);
+            const imageIndex = parseInt(modal.dataset.imageIndex);
+            const product = products.find(p => p.id === productId);
+            
+            const container = modal.querySelector('.modal-image-container');
+            const image = product.images[imageIndex];
+            
+            if (image.startsWith('http')) {
+                container.innerHTML = `<img src="${image}" alt="${product.name}" class="modal-image">`;
+            } else {
+                container.innerHTML = `<div class="modal-image" style="display:flex;align-items:center;justify-content:center;font-size:10rem;color:white;">${image}</div>`;
+            }
+            
+            // Show/hide navigation arrows
+            const prevBtn = modal.querySelector('.modal-prev');
+            const nextBtn = modal.querySelector('.modal-next');
+            
+            prevBtn.style.display = product.images.length > 1 && imageIndex > 0 ? 'block' : 'none';
+            nextBtn.style.display = product.images.length > 1 && imageIndex < product.images.length - 1 ? 'block' : 'none';
+        }
+
+        function prevModalImage() {
+            const modal = document.getElementById('imageModal');
+            const currentIndex = parseInt(modal.dataset.imageIndex);
+            if (currentIndex > 0) {
+                modal.dataset.imageIndex = currentIndex - 1;
+                updateModalImage();
+            }
+        }
+
+        function nextModalImage() {
+            const modal = document.getElementById('imageModal');
+            const productId = parseInt(modal.dataset.productId);
+            const product = products.find(p => p.id === productId);
+            const currentIndex = parseInt(modal.dataset.imageIndex);
+            
+            if (currentIndex < product.images.length - 1) {
+                modal.dataset.imageIndex = currentIndex + 1;
+                updateModalImage();
+            }
+        }
+
+        function closeImageModal() {
+            const modal = document.getElementById('imageModal');
+            modal.style.display = 'none';
+        }
+
+        // Add to cart
+        function addToCart(productId) {
+            const product = products.find(p => p.id === productId);
+            if (cart[productId]) {
+                cart[productId].quantity += 1;
+            } else {
+                cart[productId] = { ...product, quantity: 1 };
+            }
+            updateCartUI();
+            
+            // Visual feedback
+            const btn = event.target;
+            btn.style.background = '#28a745';
+            btn.textContent = 'Added!';
+            setTimeout(() => {
+                btn.style.background = '#667eea';
+                btn.textContent = 'Add to Cart';
+            }, 1000);
+        }
+
+        // Update cart UI
+        function updateCartUI() {
+            const totalItems = Object.values(cart).reduce((sum, item) => sum + item.quantity, 0);
+            const totalPrice = Object.values(cart).reduce((sum, item) => sum + (item.price * item.quantity), 0);
+            
+            cartBadge.textContent = totalItems;
+            cartBadge.style.display = totalItems > 0 ? 'flex' : 'none';
+            cartTotal.textContent = `Total: ₹${totalPrice}`;
+            
+            renderCartItems();
+        }
+
+        // Render cart items
+        function renderCartItems() {
+            cartItems.innerHTML = '';
+            
+            Object.values(cart).forEach(item => {
+                const cartItem = document.createElement('div');
+                cartItem.className = 'cart-item';
+                cartItem.innerHTML = `
+                    <div>
+                        <div class="cart-item-name">${item.name}</div>
+                        <div class="cart-item-price">₹${item.price} each</div>
+                        <div class="quantity-controls">
+                            <button class="qty-btn" onclick="updateQuantity(${item.id}, -1)">−</button>
+                            <span>${item.quantity}</span>
+                            <button class="qty-btn" onclick="updateQuantity(${item.id}, 1)">+</button>
+                        </div>
+                    </div>
+                    <div class="cart-item-price">₹${item.price * item.quantity}</div>
+                `;
+                cartItems.appendChild(cartItem);
+            });
+        }
+
+        // Update quantity
+        function updateQuantity(productId, change) {
+            if (cart[productId]) {
+                cart[productId].quantity += change;
+                if (cart[productId].quantity <= 0) {
+                    delete cart[productId];
+                }
+                updateCartUI();
+            }
+        }
+
+        // Cart controls
+        function openCart() {
+            cartOverlay.style.display = 'block';
+            setTimeout(() => cartDrawer.classList.add('open'), 10);
+        }
+
+        function closeCartDrawer() {
+            cartDrawer.classList.remove('open');
+            setTimeout(() => cartOverlay.style.display = 'none', 300);
+        }
+
+        // Search functionality
+        function handleSearch() {
+            const query = searchInput.value.toLowerCase();
+            const filteredProducts = products.filter(product => 
+                product.name.toLowerCase().includes(query)
+            );
+            renderProducts(filteredProducts);
+        }
+
+        // Send WhatsApp order
+        function sendWhatsAppOrder() {
+            const name = document.getElementById('customerName').value;
+            const phone = document.getElementById('customerPhone').value;
+            const address = document.getElementById('customerAddress').value;
+            
+            if (!name || !phone || !address) {
+                alert('Please fill in all details');
+                return;
+            }
+            
+            if (Object.keys(cart).length === 0) {
+                alert('Your cart is empty');
+                return;
+            }
+            
+            // Format order message
+            let message = `*NEW ORDER* 📦\n\n`;
+            message += `*Customer Details:*\n`;
+            message += `Name: ${name}\n`;
+            message += `Phone: ${phone}\n`;
+            message += `Address: ${address}\n\n`;
+            message += `*Items Ordered:*\n`;
+            
+            let total = 0;
+            Object.values(cart).forEach(item => {
+                const itemTotal = item.price * item.quantity;
+                total += itemTotal;
+                message += `${item.quantity}x ${item.name} - ₹${itemTotal}\n`;
+            });
+            
+            message += `\n*Total Amount: ₹${total}*\n\n`;
+            message += `Please confirm this order and delivery time. Thank you! 🙏`;
+            
+            // Create WhatsApp URL
+            const whatsappURL = `https://wa.me/${STORE_WHATSAPP}?text=${encodeURIComponent(message)}`;
+            
+            // Open WhatsApp
+            window.open(whatsappURL, '_blank');
+            
+            // Optional: Clear cart after ordering
+            // cart = {};
+            // updateCartUI();
+            // closeCartDrawer();
+        }
+
+        // Initialize app when page loads
+        document.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+</html>
